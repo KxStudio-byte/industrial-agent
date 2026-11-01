@@ -1,0 +1,39 @@
+
+# 临时文件
+.tmp_shots/
+.tmp_test/
+
+# 前端依赖及构建文件
+node_modules/
+dist/
+.vite/
+
+# Java 构建文件
+target/
+*.class
+
+# Python 缓存和虚拟环境
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# IDE 配置
+.idea/
+.vscode/
+
+# 环境变量和敏感配置
+.env
+.env.*
+!.env.example
+
+# 日志
+*.log
+logs/
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+# Spring Boot 本地敏感配置
+backend-java/industrial-agent-backend/src/main/resources/application.yml
+backend-java/industrial-agent-backend/src/main/resources/application-dev.yml

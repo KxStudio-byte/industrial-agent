@@ -1,0 +1,325 @@
+/* ==========================================================================
+   工业 AI Agent 智能体运营平台 — 全局样式
+   设计语言对齐原型：浅蓝灰底 + 白色卡片 + 每张卡左侧 3px 彩色竖条
+   ========================================================================== */
+
+:root {
+  /* 品牌色 */
+  --brand: #1677ff;
+  --brand-hover: #4096ff;
+  --brand-light: #e8f1ff;
+  --brand-bg: #f0f6ff;
+
+  /* 语义色（同时用于卡片左侧竖条） */
+  --c-blue: #1677ff;
+  --c-green: #00b42a;
+  --c-orange: #ff7d00;
+  --c-red: #f53f3f;
+  --c-cyan: #14c9c9;
+  --c-purple: #722ed1;
+
+  /* 文本 */
+  --text-1: #1d2129;
+  --text-2: #4e5969;
+  --text-3: #86909c;
+  --text-4: #c9cdd4;
+
+  /* 线条与背景 */
+  --line: #e5e6eb;
+  --line-light: #f2f3f5;
+  --page-bg: #f0f2f5;
+  --card-bg: #ffffff;
+
+  /* 圆角与阴影 */
+  --radius: 8px;
+  --radius-sm: 6px;
+  --shadow: 0 2px 10px rgba(0, 21, 41, 0.06);
+  --shadow-hover: 0 4px 16px rgba(0, 21, 41, 0.1);
+
+  /* 尺寸 */
+  --aside-w: 208px;
+  --header-h: 56px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
+    'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  color: var(--text-1);
+  background: var(--page-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  height: 100%;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d9dce3;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c4c8d0;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- 页面骨架 ---------- */
+.page-title {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-1);
+  line-height: 28px;
+}
+
+.page-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-3);
+  line-height: 20px;
+}
+
+/* ---------- 卡片 ----------
+   原型里每张 KPI/信息卡左边都有一条 3px 彩条，用 --accent 变量驱动 */
+.stat-card {
+  position: relative;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 14px 18px 14px 20px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  height: 100%;
+  transition: box-shadow 0.2s;
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-hover);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent, var(--c-blue));
+}
+.stat-card__label {
+  font-size: 13px;
+  color: var(--text-3);
+  line-height: 20px;
+  margin-bottom: 2px;
+}
+.stat-card__value {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  color: var(--text-1);
+}
+.stat-card__value--sm {
+  font-size: 20px;
+  line-height: 26px;
+}
+.stat-card__sub {
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 18px;
+  margin-top: 2px;
+}
+
+/* 白底卡片（表格 / 图表容器） */
+.panel {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 20px;
+}
+
+.panel + .panel {
+  margin-top: 16px;
+}
+
+.panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.panel__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+/* 区块小标题（原型里带左侧竖条） */
+.section-title {
+  position: relative;
+  padding-left: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-1);
+  line-height: 22px;
+  margin: 0 0 12px;
+}
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  bottom: 3px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--brand);
+}
+
+/* ---------- 标签样式 ---------- */
+.tag-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 0 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.tag-dot::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.tag-dot--green { color: var(--c-green); background: #e8ffea; }
+.tag-dot--orange { color: var(--c-orange); background: #fff7e8; }
+.tag-dot--red { color: var(--c-red); background: #ffece8; }
+.tag-dot--blue { color: var(--c-blue); background: var(--brand-light); }
+.tag-dot--gray { color: var(--text-3); background: var(--line-light); }
+
+/* ---------- 进度条（原型里的细长条） ---------- */
+.meter {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--line-light);
+  overflow: hidden;
+}
+.meter__bar {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--brand);
+  transition: width 0.4s ease;
+}
+
+/* ---------- Element Plus 局部覆盖 ---------- */
+.el-card {
+  border: none !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.el-table {
+  font-size: 13px;
+}
+.el-table th.el-table__cell {
+  background: #fafbfc !important;
+  color: var(--text-2) !important;
+  font-weight: 500;
+}
+.el-table .el-table__cell {
+  padding: 10px 0;
+}
+
+.el-drawer__header {
+  margin-bottom: 0 !important;
+  padding: 18px 24px 14px !important;
+  border-bottom: 1px solid var(--line-light);
+}
+.el-drawer__body {
+  padding: 20px 24px !important;
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--brand);
+  --el-button-border-color: var(--brand);
+  --el-button-hover-bg-color: var(--brand-hover);
+  --el-button-hover-border-color: var(--brand-hover);
+}
+
+/* 查询表单区（原型里是一整块白卡，表单项上方的 label） */
+.filter-panel {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 20px 8px;
+  margin-bottom: 16px;
+}
+.filter-panel .el-form-item {
+  margin-bottom: 12px;
+}
+.filter-panel .el-form-item__label {
+  color: var(--text-3);
+  font-size: 13px;
+  line-height: 20px;
+  padding-bottom: 4px !important;
+  height: auto !important;
+}
+.filter-panel .el-input__wrapper,
+.filter-panel .el-select__wrapper {
+  box-shadow: 0 0 0 1px var(--line) inset;
+}
+
+/* 表格底部统计条 */
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+/* 详情抽屉里的 label/value 行 */
+.detail-list {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  row-gap: 10px;
+  font-size: 13px;
+  line-height: 20px;
+}
+.detail-list__label {
+  color: var(--text-3);
+}
+.detail-list__value {
+  color: var(--text-1);
+  word-break: break-all;
+}
+
+/* AI 提示框 */
+.ai-hint {
+  background: var(--brand-bg);
+  border-left: 3px solid var(--brand);
+  border-radius: 4px;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--text-2);
+}

@@ -1,0 +1,746 @@
+{
+  "info": {
+    "_postman_id": "b8f2c1d4-7a3e-4f61-9c2b-5d8e1a3f6c07",
+    "name": "工业智能体平台 · 设备中心 API",
+    "description": "设备中心 7 组接口的完整测试集合。\n\n## 使用步骤\n1. 先跑 **00 登录**，脚本会自动把 token 写进集合变量 `{{token}}`。\n2. 其余请求都带了 `Authorization: Bearer {{token}}`，无需手动粘贴。\n3. 按 01→07 顺序跑，后面的请求依赖前面创建的 `{{equipmentId}}`。\n\n## 前置条件\n- 后端已启动：http://localhost:8080\n- MySQL 已灌入 seed 数据（database/db_change_equipment_and_seed.sql）\n- 账号：admin / 123456（系统管理员，拥有全部设备权限）\n\n## 权限矩阵\n| 接口 | ADMIN | MANAGER | OPERATOR |\n|---|---|---|---|\n| 查询类 | ✓ | ✓ | ✓ |\n| 新增/删除 | ✓ | ✗ | ✗ |\n| 修改 | ✓ | ✓ | ✗ |\n| 上报运行数据 | ✓ | ✗ | ✓ |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "equipmentId", "value": "1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 登录（获取 token）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('登录成功', () => { pm.expect(body.code).to.eql(200); });",
+              "if (body.data && body.data.token) {",
+              "  pm.collectionVariables.set('token', body.data.token);",
+              "  console.log('token 已写入集合变量');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}", "options": { "raw": { "language": "json" } } },
+        "description": "登录拿 JWT。成功后会写入集合变量 {{token}}。"
+      }
+    },
+    {
+      "name": "01 设备列表 · 分页",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('业务码 200', () => pm.expect(body.code).to.eql(200));",
+              "pm.test('返回分页对象', () => {",
+              "  pm.expect(body.data).to.have.property('total');",
+              "  pm.expect(body.data).to.have.property('list');",
+              "  pm.expect(body.data.list).to.be.an('array');",
+              "});",
+              "pm.test('total = 48', () => pm.expect(body.data.total).to.eql(48));",
+              "pm.test('分页生效（返回 5 条）', () => pm.expect(body.data.list.length).to.eql(5));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/equipment?page=1&size=5",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "equipment"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "size", "value": "5" }
+          ]
+        },
+        "description": "传 page 参数 → 返回分页对象 {total,page,size,pages,list}。"
+      }
+    },
+    {
+      "name": "01b 设备列表 · 不分页（返回数组）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('业务码 200', () => pm.expect(body.code).to.eql(200));",
+              "pm.test('返回数组而不是分页对象', () => pm.expect(body.data).to.be.an('array'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "{{baseUrl}}/api/equipment", "host": ["{{baseUrl}}"], "path": ["api", "equipment"] },
+        "description": "不传 page → 直接返回 Equipment[] 数组。"
+      }
+    },
+    {
+      "name": "01c 设备列表 · 组合筛选（状态+产线+关键词）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('业务码 200', () => pm.expect(body.code).to.eql(200));",
+              "pm.test('全部命中筛选条件', () => {",
+              "  body.data.list.forEach(r => {",
+              "    pm.expect(r.status).to.eql('预警');",
+              "    pm.expect(r.lineName).to.eql('A产线');",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/equipment?status=预警&lineName=A产线&keyword=注塑机&page=1&size=20",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "equipment"],
+          "query": [
+            { "key": "status", "value": "预警" },
+            { "key": "lineName", "value": "A产线" },
+            { "key": "keyword", "value": "注塑机" },
+            { "key": "page", "value": "1" },
+            { "key": "size", "value": "20" }
+          ]
+        },
+        "description": "多条件 AND 组合。注意 status 传「全部」等价于不过滤。"
+      }
+    },
+    {
+      "name": "01d 设备列表 · 排序 + 健康度区间",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/equipment?sortField=health&sortOrder=asc&minHealth=0&maxHealth=80&page=1&size=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "equipment"],
+          "query": [
+            { "key": "sortField", "value": "health" },
+            { "key": "sortOrder", "value": "asc" },
+            { "key": "minHealth", "value": "0" },
+            { "key": "maxHealth", "value": "80" },
+            { "key": "page", "value": "1" },
+            { "key": "size", "value": "10" }
+          ]
+        },
+        "description": "按健康度升序，只看 0-80 分的设备。"
+      }
+    },
+    {
+      "name": "01e 设备列表 · 参数校验失败（size 超限）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('返回 400 参数错误', () => pm.expect(body.code).to.eql(400));",
+              "pm.test('提示里带字段名', () => pm.expect(body.msg).to.include('size'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/equipment?page=1&size=9999",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "equipment"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "size", "value": "9999" }
+          ]
+        },
+        "description": "size 最大 500，超出由 @Max 拦下。"
+      }
+    },
+    {
+      "name": "02 设备详情",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('业务码 200', () => pm.expect(body.code).to.eql(200));",
+              "pm.test('字段齐全', () => {",
+              "  ['id','code','name','type','model','vendor','lineName','status','health','riskLevel'].forEach(k => {",
+              "    pm.expect(body.data).to.have.property(k);",
+              "  });",
+              "});",
+              "pm.test('predict 是嵌套对象', () => {",
+              "  pm.expect(body.data.predict).to.have.property('h24');",
+              "  pm.expect(body.data.predict).to.have.property('d7');",
+              "  pm.expect(body.data.predict).to.have.property('d30');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "{{baseUrl}}/api/equipment/{{equipmentId}}", "host": ["{{baseUrl}}"], "path": ["api", "equipment", "{{equipmentId}}"] },
+        "description": "详情与列表共用同一套字段投影，结构完全一致。"
+      }
+    },
+    {
+      "name": "02b 设备详情 · 不存在（404 业务码）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('返回 10001 数据不存在', () => pm.expect(body.code).to.eql(10001));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "{{baseUrl}}/api/equipment/999999", "host": ["{{baseUrl}}"], "path": ["api", "equipment", "999999"] },
+        "description": "不存在的设备返回业务码 10001，而不是 500。"
+      }
+    },
+    {
+      "name": "03 新增设备",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('创建成功', () => pm.expect(body.code).to.eql(200));",
+              "pm.test('返回体带新 ID', () => pm.expect(body.data.id).to.be.a('number'));",
+              "if (body.data && body.data.id) {",
+              "  pm.collectionVariables.set('equipmentId', String(body.data.id));",
+              "  console.log('新设备 ID = ' + body.data.id + ' 已写入 {{equipmentId}}');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/equipment", "host": ["{{baseUrl}}"], "path": ["api", "equipment"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"EQ-TEST-9001\",\n  \"name\": \"测试注塑机\",\n  \"lineId\": 1,\n  \"type\": \"注塑\",\n  \"model\": \"IM-220T\",\n  \"vendor\": \"海天\",\n  \"health\": 95,\n  \"riskLevel\": \"低\",\n  \"status\": \"正常\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "description": "新增后自动把新 ID 写入 {{equipmentId}}，后续请求都操作这台设备。\n注意：重复执行会因编号唯一报 10002，改一下 code 即可。"
+      }
+    },
+    {
+      "name": "03b 新增设备 · 缺少必填项（校验失败）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('返回 400', () => pm.expect(body.code).to.eql(400));",
+              "pm.test('提示包含字段名', () => {",
+              "  pm.expect(body.msg).to.match(/code|name|lineId/);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/equipment", "host": ["{{baseUrl}}"], "path": ["api", "equipment"] },
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"缺少编号和产线\"\n}", "options": { "raw": { "language": "json" } } },
+        "description": "@NotBlank / @NotNull 拦截，msg 里会列出所有缺失字段。"
+      }
+    },
+    {
+      "name": "03c 新增设备 · 编号重复（唯一性校验）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('返回 10002 已存在', () => pm.expect(body.code).to.eql(10002));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/equipment", "host": ["{{baseUrl}}"], "path": ["api", "equipment"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"EQ-IM-003\",\n  \"name\": \"重复编号\",\n  \"lineId\": 1\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "description": "EQ-IM-003 是种子数据里 3号注塑机的编号。"
+      }
+    },
+    {
+      "name": "03d 新增设备 · 产线不存在",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('返回 400 参数错误', () => pm.expect(body.code).to.eql(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/equipment", "host": ["{{baseUrl}}"], "path": ["api", "equipment"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"EQ-TEST-9002\",\n  \"name\": \"产线不存在\",\n  \"lineId\": 999\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "description": "格式合法但产线不存在 —— 存在性校验只能查库，在 Service 里做。"
+      }
+    },
+    {
+      "name": "04 修改设备（局部更新）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('修改成功', () => pm.expect(body.code).to.eql(200));",
+              "pm.test('提交的字段已生效', () => {",
+              "  pm.expect(body.data.name).to.eql('测试注塑机-已改名');",
+              "  pm.expect(body.data.health).to.eql(88);",
+              "});",
+              "pm.test('未提交的字段保持原值', () => {",
+              "  pm.expect(body.data.vendor).to.eql('海天');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/equipment/{{equipmentId}}", "host": ["{{baseUrl}}"], "path": ["api", "equipment", "{{equipmentId}}"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"测试注塑机-已改名\",\n  \"health\": 88,\n  \"status\": \"预警\",\n  \"lastException\": \"测试用异常描述\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "description": "只提交 4 个字段 —— 其余字段（code/vendor/model…）不受影响，这是局部更新语义。"
+      }
+    },
+    {
+      "name": "04b 修改设备 · 空请求体被拒绝",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('返回 400', () => pm.expect(body.code).to.eql(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/equipment/{{equipmentId}}", "host": ["{{baseUrl}}"], "path": ["api", "equipment", "{{equipmentId}}"] },
+        "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+        "description": "一个字段都不传时直接拒绝，避免无意义的 UPDATE。"
+      }
+    },
+    {
+      "name": "04c 修改设备 · 健康度越界（校验失败）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('返回 400', () => pm.expect(body.code).to.eql(400));",
+              "pm.test('提示健康度越界', () => pm.expect(body.msg).to.include('健康度'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/equipment/{{equipmentId}}", "host": ["{{baseUrl}}"], "path": ["api", "equipment", "{{equipmentId}}"] },
+        "body": { "mode": "raw", "raw": "{\n  \"health\": 150\n}", "options": { "raw": { "language": "json" } } },
+        "description": "@Max(100) 拦截。"
+      }
+    },
+    {
+      "name": "06 设备状态查询",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('业务码 200', () => pm.expect(body.code).to.eql(200));",
+              "pm.test('状态与阈值同时返回', () => {",
+              "  pm.expect(body.data).to.have.property('status');",
+              "  pm.expect(body.data).to.have.property('temperatureLimit');",
+              "  pm.expect(body.data).to.have.property('vibrationLimit');",
+              "  pm.expect(body.data).to.have.property('abnormal');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "{{baseUrl}}/api/equipment/{{equipmentId}}/status", "host": ["{{baseUrl}}"], "path": ["api", "equipment", "{{equipmentId}}", "status"] },
+        "description": "返回状态判定 + 实时值 + 阈值 + 数据新鲜度，前端不用自己复算。"
+      }
+    },
+    {
+      "name": "06b 全部设备状态快照",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/equipment/status-summary?lineName=A产线",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "equipment", "status-summary"],
+          "query": [{ "key": "lineName", "value": "A产线" }]
+        },
+        "description": "大屏/工位牌轮询用。不带分页参数。"
+      }
+    },
+    {
+      "name": "07 运行数据 · 最新值",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "{{baseUrl}}/api/equipment/3/runtime", "host": ["{{baseUrl}}"], "path": ["api", "equipment", "3", "runtime"] },
+        "description": "3号注塑机（EQ-IM-003）是种子数据里的预警设备。"
+      }
+    },
+    {
+      "name": "07b 运行数据 · 趋势（小时粒度）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('业务码 200', () => pm.expect(body.code).to.eql(200));",
+              "pm.test('返回 24 个点', () => pm.expect(body.data.points.length).to.be.greaterThan(0));",
+              "pm.test('粒度正确', () => pm.expect(body.data.granularity).to.eql('hour'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/equipment/3/trend?granularity=hour&hours=24",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "equipment", "3", "trend"],
+          "query": [
+            { "key": "granularity", "value": "hour" },
+            { "key": "hours", "value": "24" }
+          ]
+        },
+        "description": "数据源 eqp_runtime_history，24 小时原始点。"
+      }
+    },
+    {
+      "name": "07c 运行数据 · 趋势（天粒度聚合）",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/equipment/3/trend?granularity=day&days=7",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "equipment", "3", "trend"],
+          "query": [
+            { "key": "granularity", "value": "day" },
+            { "key": "days", "value": "7" }
+          ]
+        },
+        "description": "按天取平均，一个月 720 个原始点聚合成 30 个日均值。"
+      }
+    },
+    {
+      "name": "07d 运行数据 · 上报",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('上报成功', () => pm.expect(body.code).to.eql(200));",
+              "pm.test('返回状态判定', () => {",
+              "  pm.expect(body.data).to.have.property('abnormal');",
+              "  pm.expect(body.data).to.have.property('status');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/equipment/3/runtime", "host": ["{{baseUrl}}"], "path": ["api", "equipment", "3", "runtime"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"temperature\": 71.5,\n  \"vibration\": 8.2,\n  \"current\": 45.3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "description": "温度 71.5 > 阈值 65、振动 8.2 > 阈值 6.5 → 返回 abnormal=true。\n采用 upsert：同一设备重复上报只保留最新一条，同时往历史表追加一条。"
+      }
+    },
+    {
+      "name": "07e 运行数据 · 上报越界值被拒绝",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('返回 400', () => pm.expect(body.code).to.eql(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/equipment/3/runtime", "host": ["{{baseUrl}}"], "path": ["api", "equipment", "3", "runtime"] },
+        "body": { "mode": "raw", "raw": "{\n  \"temperature\": 999\n}", "options": { "raw": { "language": "json" } } },
+        "description": "温度合理范围 0-200。"
+      }
+    },
+    {
+      "name": "08 设备总览 KPI",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('业务码 200', () => pm.expect(body.code).to.eql(200));",
+              "pm.test('各项计数自洽', () => {",
+              "  const d = body.data;",
+              "  pm.expect(d.normal + d.warning + d.fault + d.offline).to.eql(d.total);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "{{baseUrl}}/api/equipment/summary", "host": ["{{baseUrl}}"], "path": ["api", "equipment", "summary"] },
+        "description": "设备总览页 KPI 卡 + 按产线分布。"
+      }
+    },
+    {
+      "name": "09 未认证访问（401）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "const body = pm.response.json();",
+              "pm.test('返回统一 JSON 而不是 HTML', () => pm.expect(body).to.have.property('code'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/equipment", "host": ["{{baseUrl}}"], "path": ["api", "equipment"] },
+        "description": "不带 token 访问受保护接口，应返回 HTTP 401 + 统一 JSON。"
+      }
+    },
+    {
+      "name": "10 操作员访问新增接口（403）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+              "const body = pm.response.json();",
+              "pm.test('业务码 403', () => pm.expect(body.code).to.eql(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/equipment", "host": ["{{baseUrl}}"], "path": ["api", "equipment"] },
+        "body": { "mode": "raw", "raw": "{\n  \"code\": \"EQ-NOPERM-1\",\n  \"name\": \"无权限设备\",\n  \"lineId\": 1\n}", "options": { "raw": { "language": "json" } } },
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{operatorToken}}", "type": "string" }]
+        },
+        "description": "需要先执行下方「00x 操作员登录」拿到 operatorToken。\n操作员只有 EQUIPMENT:VIEW 和 EQUIPMENT:REPORT_RUNTIME，没有 CREATE。"
+      }
+    },
+    {
+      "name": "00x 操作员登录（供 403 用例使用）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "if (body.data && body.data.token) {",
+              "  pm.collectionVariables.set('operatorToken', body.data.token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+        "body": { "mode": "raw", "raw": "{\n  \"username\": \"operator\",\n  \"password\": \"operator123\"\n}", "options": { "raw": { "language": "json" } } },
+        "description": "操作员账号，用来验证权限拦截。"
+      }
+    },
+    {
+      "name": "05 删除设备（最后执行）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('删除成功', () => pm.expect(body.code).to.eql(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "{{baseUrl}}/api/equipment/{{equipmentId}}", "host": ["{{baseUrl}}"], "path": ["api", "equipment", "{{equipmentId}}"] },
+        "description": "逻辑删除：is_deleted=1，记录仍在库里（历史工单还要引用它），但接口查不到了。\n放在最后执行，因为它会把 03 创建的设备删掉。"
+      }
+    },
+    {
+      "name": "05b 删除后详情查不到（验证逻辑删除生效）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('返回 10001 数据不存在', () => pm.expect(body.code).to.eql(10001));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "{{baseUrl}}/api/equipment/{{equipmentId}}", "host": ["{{baseUrl}}"], "path": ["api", "equipment", "{{equipmentId}}"] },
+        "description": "证明逻辑删除后 @TableLogic 自动过滤生效。"
+      }
+    }
+  ]
+}
