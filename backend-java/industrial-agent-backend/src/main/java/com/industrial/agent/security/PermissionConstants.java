@@ -63,6 +63,14 @@ public final class PermissionConstants {
     /** 查看质量数据（质量总览 / 缺陷统计 / 根因分析） */
     public static final String QUALITY_VIEW = "QUALITY:VIEW";
 
+    /* ---------- 能源中心 ---------- */
+
+    /** 查看能耗数据（能耗总览 / 能耗分析） */
+    public static final String ENERGY_VIEW = "ENERGY:VIEW";
+
+    /** 下发执行节能优化方案 */
+    public static final String ENERGY_EXECUTE = "ENERGY:EXECUTE";
+
     /** 查看认证演示资源 */
     public static final String AUTH_DEMO_VIEW = "AUTH:DEMO_VIEW";
     /** 访问管理员专属演示资源 */

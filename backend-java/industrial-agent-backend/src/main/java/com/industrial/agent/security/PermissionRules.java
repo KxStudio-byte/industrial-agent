@@ -47,7 +47,9 @@ public final class PermissionRules {
                     PermissionConstants.WORK_ORDER_DELETE,
                     PermissionConstants.PRODUCTION_VIEW,
                     PermissionConstants.PRODUCTION_EDIT,
-                    PermissionConstants.QUALITY_VIEW
+                    PermissionConstants.QUALITY_VIEW,
+                    PermissionConstants.ENERGY_VIEW,
+                    PermissionConstants.ENERGY_EXECUTE
             ),
             // 车间主管：只读 + 查看角色，不能管用户；设备可改不可增删
             PermissionConstants.ROLE_KEY_MANAGER, Set.of(
@@ -62,7 +64,9 @@ public final class PermissionRules {
                     PermissionConstants.WORK_ORDER_TRANSITION,
                     PermissionConstants.PRODUCTION_VIEW,
                     PermissionConstants.PRODUCTION_EDIT,
-                    PermissionConstants.QUALITY_VIEW
+                    PermissionConstants.QUALITY_VIEW,
+                    PermissionConstants.ENERGY_VIEW,
+                    PermissionConstants.ENERGY_EXECUTE
             ),
             // 操作员：现场只能看设备 + 上报运行数据，改不了台账
             // 工单是现场最贴近的一环：能看、能报、能推进状态，但不能删、不能改别人的派工单
@@ -76,7 +80,8 @@ public final class PermissionRules {
                     PermissionConstants.WORK_ORDER_CREATE,
                     PermissionConstants.WORK_ORDER_TRANSITION,
                     PermissionConstants.PRODUCTION_VIEW,
-                    PermissionConstants.QUALITY_VIEW
+                    PermissionConstants.QUALITY_VIEW,
+                    PermissionConstants.ENERGY_VIEW
             )
     );
 
